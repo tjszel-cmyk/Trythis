@@ -2,118 +2,157 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Expense Entry Form</title>
+    <title>HSA Medical Expense Tracker</title>
+
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 900px;
             margin: 40px auto;
             line-height: 1.5;
         }
+
+        h1, h2 {
+            margin-bottom: 10px;
+        }
+
         label {
             font-weight: bold;
             display: block;
             margin-top: 15px;
         }
-        input, textarea {
+
+        input, select, textarea {
             width: 100%;
             padding: 8px;
             margin-top: 5px;
             box-sizing: border-box;
         }
-        textarea {
-            height: 120px;
-        }
+
         button {
             margin-top: 20px;
             padding: 10px 20px;
             font-size: 16px;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 40px;
+            margin-top: 30px;
         }
+
         th, td {
             border: 1px solid #ccc;
             padding: 10px;
             text-align: left;
         }
+
         th {
             background: #f0f0f0;
         }
-        .print-btn {
-            margin-top: 20px;
+
+        /* Print clean table only */
+        @media print {
+            form, h1, .print-btn {
+                display: none;
+            }
+            table {
+                margin-top: 0;
+            }
         }
     </style>
 </head>
+
 <body>
 
-    <h1>Expense Tracker Entry</h1>
+    <h1>HSA Medical Expense Tracker</h1>
 
     <form id="expenseForm">
-        <label for="date">Date</label>
-        <input type="date" id="date" name="date" required>
 
-        <label for="amount">Expense Amount</label>
-        <input type="number" id="amount" name="amount" step="0.01" required>
+        <label for="date">Date of Expense</label>
+        <input type="date" id="date" required>
 
-        <label for="location">Location</label>
-        <input type="text" id="location" name="location" required>
+        <label for="user">User</label>
+        <select id="user" required>
+            <option value="">Select User</option>
+            <option value="Tom">Tom</option>
+            <option value="Cathy">Cathy</option>
+        </select>
 
-        <label for="explanation">Explanation</label>
-        <textarea id="explanation" name="explanation" required></textarea>
+        <label for="description">Description</label>
+        <textarea id="description" required></textarea>
+
+        <label for="receipt">Receipt Number</label>
+        <input type="text" id="receipt" required>
+
+        <label>
+            <input type="checkbox" id="reimbursed">
+            Reimbursed
+        </label>
 
         <button type="submit">Save Expense</button>
     </form>
 
-    <h2>Past Expenses</h2>
+    <h2>All Recorded Expenses</h2>
+
+    <button class="print-btn" onclick="window.print()">Print Records</button>
+
     <table id="expenseTable">
         <thead>
             <tr>
                 <th>Date</th>
-                <th>Amount</th>
-                <th>Location</th>
-                <th>Explanation</th>
+                <th>User</th>
+                <th>Description</th>
+                <th>Receipt #</th>
+                <th>Reimbursed</th>
             </tr>
         </thead>
         <tbody></tbody>
     </table>
 
-    <button class="print-btn" onclick="window.print()">Print Table</button>
-
     <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbzQ3s-QgtgDRZUJAyf_U6jtpBvVD01JAHpFBBSo0mah0KzDSl3zZOk6VkujMlwytiPT0A/exec";
+
         const form = document.getElementById('expenseForm');
         const tableBody = document.querySelector('#expenseTable tbody');
 
-        function loadExpenses() {
-            const expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+        async function loadExpenses() {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+
+            // Sort by date (newest first)
+            data.sort((a, b) => new Date(b.date) - new Date(a.date));
+
             tableBody.innerHTML = '';
-            expenses.forEach(exp => {
+
+            data.forEach(exp => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${exp.date}</td>
-                    <td>${exp.amount}</td>
-                    <td>${exp.location}</td>
-                    <td>${exp.explanation}</td>
+                    <td>${exp.user}</td>
+                    <td>${exp.description}</td>
+                    <td>${exp.receipt}</td>
+                    <td>${exp.reimbursed === "true" ? "Yes" : "No"}</td>
                 `;
                 tableBody.appendChild(row);
             });
         }
 
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const newExpense = {
                 date: document.getElementById('date').value,
-                amount: document.getElementById('amount').value,
-                location: document.getElementById('location').value,
-                explanation: document.getElementById('explanation').value
+                user: document.getElementById('user').value,
+                description: document.getElementById('description').value,
+                receipt: document.getElementById('receipt').value,
+                reimbursed: document.getElementById('reimbursed').checked
             };
 
-            const expenses = JSON.parse(localStorage.getItem('expenses')) || [];
-            expenses.push(newExpense);
-            localStorage.setItem('expenses', JSON.stringify(expenses));
+            await fetch(API_URL, {
+                method: "POST",
+                body: JSON.stringify(newExpense)
+            });
 
             form.reset();
             loadExpenses();
