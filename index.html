@@ -1,71 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>HSA Medical Expense Tracker</title>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 900px;
-            margin: 40px auto;
-            line-height: 1.5;
-        }
-
-        h1, h2 {
-            margin-bottom: 10px;
-        }
-
-        label {
-            font-weight: bold;
-            display: block;
-            margin-top: 15px;
-        }
-
-        input, select, textarea {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            box-sizing: border-box;
-        }
-
-        button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 30px;
-        }
-
-        th, td {
-            border: 1px solid #ccc;
-            padding: 10px;
-            text-align: left;
-        }
-
-        th {
-            background: #f0f0f0;
-        }
-
-        /* Print clean table only */
-        @media print {
-            form, h1, .print-btn {
-                display: none;
-            }
-            table {
-                margin-top: 0;
-            }
-        }
-    </style>
-</head>
-
 <body>
 
     <h1>HSA Medical Expense Tracker</h1>
+
+    <!-- DASHBOARD SUMMARY -->
+    <div id="dashboard" style="
+        background:#f7f7f7;
+        padding:20px;
+        border:1px solid #ccc;
+        margin-bottom:30px;
+        border-radius:8px;
+    ">
+        <h2>Dashboard Summary</h2>
+        <p><strong>Total Expenses:</strong> <span id="totalCount">0</span></p>
+        <p><strong>Total Amount Spent:</strong> $<span id="totalAmount">0.00</span></p>
+        <p><strong>Total Reimbursed:</strong> $<span id="totalReimbursed">0.00</span></p>
+        <p><strong>Total Not Reimbursed:</strong> $<span id="totalNotReimbursed">0.00</span></p>
+        <p><strong>Tom’s Total:</strong> $<span id="tomTotal">0.00</span></p>
+        <p><strong>Cathy’s Total:</strong> $<span id="cathyTotal">0.00</span></p>
+    </div>
 
     <form id="expenseForm">
 
@@ -78,6 +30,9 @@
             <option value="Tom">Tom</option>
             <option value="Cathy">Cathy</option>
         </select>
+
+        <label for="amount">Expense Amount</label>
+        <input type="number" id="amount" step="0.01" required>
 
         <label for="description">Description</label>
         <textarea id="description" required></textarea>
@@ -102,6 +57,7 @@
             <tr>
                 <th>Date</th>
                 <th>User</th>
+                <th>Amount</th>
                 <th>Description</th>
                 <th>Receipt #</th>
                 <th>Reimbursed</th>
@@ -116,6 +72,14 @@
         const form = document.getElementById('expenseForm');
         const tableBody = document.querySelector('#expenseTable tbody');
 
+        // Dashboard elements
+        const totalCount = document.getElementById('totalCount');
+        const totalAmount = document.getElementById('totalAmount');
+        const totalReimbursed = document.getElementById('totalReimbursed');
+        const totalNotReimbursed = document.getElementById('totalNotReimbursed');
+        const tomTotal = document.getElementById('tomTotal');
+        const cathyTotal = document.getElementById('cathyTotal');
+
         async function loadExpenses() {
             const response = await fetch(API_URL);
             const data = await response.json();
@@ -125,17 +89,48 @@
 
             tableBody.innerHTML = '';
 
+            // Dashboard totals
+            let total = 0;
+            let reimbursedTotal = 0;
+            let notReimbursedTotal = 0;
+            let tom = 0;
+            let cathy = 0;
+
             data.forEach(exp => {
+                const amount = parseFloat(exp.amount) || 0;
+                const amountFormatted = `$${amount.toFixed(2)}`;
+
+                // Add to dashboard totals
+                total += amount;
+                if (exp.reimbursed === "true") {
+                    reimbursedTotal += amount;
+                } else {
+                    notReimbursedTotal += amount;
+                }
+
+                if (exp.user === "Tom") tom += amount;
+                if (exp.user === "Cathy") cathy += amount;
+
+                // Add row to table
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${exp.date}</td>
                     <td>${exp.user}</td>
+                    <td>${amountFormatted}</td>
                     <td>${exp.description}</td>
                     <td>${exp.receipt}</td>
                     <td>${exp.reimbursed === "true" ? "Yes" : "No"}</td>
                 `;
                 tableBody.appendChild(row);
             });
+
+            // Update dashboard
+            totalCount.textContent = data.length;
+            totalAmount.textContent = total.toFixed(2);
+            totalReimbursed.textContent = reimbursedTotal.toFixed(2);
+            totalNotReimbursed.textContent = notReimbursedTotal.toFixed(2);
+            tomTotal.textContent = tom.toFixed(2);
+            cathyTotal.textContent = cathy.toFixed(2);
         }
 
         form.addEventListener('submit', async function(e) {
@@ -144,6 +139,7 @@
             const newExpense = {
                 date: document.getElementById('date').value,
                 user: document.getElementById('user').value,
+                amount: document.getElementById('amount').value,
                 description: document.getElementById('description').value,
                 receipt: document.getElementById('receipt').value,
                 reimbursed: document.getElementById('reimbursed').checked
@@ -162,4 +158,3 @@
     </script>
 
 </body>
-</html>
