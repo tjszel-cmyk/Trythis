@@ -93,9 +93,6 @@
             <label for="description">Description</label>
             <textarea id="description" required></textarea>
 
-            <label for="receipt">Receipt Number</label>
-            <input type="text" id="receipt" required>
-
             <label>
                 <input type="checkbox" id="reimbursed">
                 Reimbursed
@@ -123,7 +120,6 @@
                     <th>User</th>
                     <th>Amount</th>
                     <th>Description</th>
-                    <th>Receipt #</th>
                     <th>Reimbursed</th>
                 </tr>
             </thead>
@@ -165,4 +161,36 @@
                 const amountFormatted = `$${parseFloat(exp.amount).toFixed(2)}`;
 
                 const row = document.createElement('tr');
-               
+                row.innerHTML = `
+                    <td>${exp.date}</td>
+                    <td>${exp.user}</td>
+                    <td>${amountFormatted}</td>
+                    <td>${exp.description}</td>
+                    <td>${exp.reimbursed === "true" ? "Yes" : "No"}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const newExpense = {
+                date: document.getElementById('date').value,
+                user: document.getElementById('user').value,
+                amount: document.getElementById('amount').value,
+                description: document.getElementById('description').value,
+                reimbursed: document.getElementById('reimbursed').checked
+            };
+
+            await fetch(API_URL, {
+                method: "POST",
+                body: JSON.stringify(newExpense)
+            });
+
+            form.reset();
+        });
+    </script>
+
+</body>
+</html>
